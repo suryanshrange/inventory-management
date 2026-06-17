@@ -1,0 +1,108 @@
+{
+  "theme": "LIGHT",
+  "archetype": "4 (Swiss & High-Contrast adapted for Enterprise Emerald)",
+  "design_philosophy": "Clean, authoritative enterprise dashboard prioritizing data clarity. Neutral surfaces (white/slate) punctuated by emerald green strictly for key actions, positive trends, and active states. Generous white space, progressive disclosure, and modular bento-style widgets.",
+  "typography": {
+    "heading_font": "Manrope",
+    "body_font": "IBM Plex Sans",
+    "weights": {
+      "headings": "600, 700, 800",
+      "body": "400, 500"
+    },
+    "scale": {
+      "h1": "text-3xl sm:text-4xl tracking-tight",
+      "h2": "text-2xl sm:text-3xl tracking-tight",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-sm sm:text-base",
+      "small": "text-xs tracking-[0.02em]"
+    }
+  },
+  "colors": {
+    "light": {
+      "background": "#FFFFFF",
+      "surface": "#F8FAFC",
+      "surface_hover": "#F1F5F9",
+      "primary_emerald": "#10B981",
+      "primary_emerald_hover": "#059669",
+      "text_main": "#0F172A",
+      "text_muted": "#64748B",
+      "border": "#E2E8F0",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "danger": "#EF4444"
+    },
+    "dark": {
+      "background": "#020617",
+      "surface": "#0F172A",
+      "surface_hover": "#1E293B",
+      "primary_emerald": "#10B981",
+      "primary_emerald_hover": "#34D399",
+      "text_main": "#F8FAFC",
+      "text_muted": "#94A3B8",
+      "border": "#1E293B",
+      "success": "#34D399",
+      "warning": "#FBBF24",
+      "danger": "#F87171"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Optical alignment, bento-grid modularity for dashboard widgets. Density where needed (tables), generous spacing around containers.",
+    "dashboard_grid": "Base grid: grid-cols-1 md:grid-cols-3 lg:grid-cols-4. Gap: gap-6. Use col-span-2 or col-span-3 for main charts.",
+    "padding": "Containers with borders must use p-6 or p-8.",
+    "radius": "Subtle roundness, max 8px (rounded-lg or rounded-md). No pill-shaped buttons unless explicitly required."
+  },
+  "surface_strategies": {
+    "cards": "Flat background, 1px subtle border, no shadow by default. Hover: slight lift (-translate-y-1), shadow-sm, border darkens.",
+    "tables": "Professional dense tables. Left-align text, right-align numbers. Sticky headers.",
+    "header": "Solid background with hard bottom border. Sticky top z-50.",
+    "sidebar": "Collapsible side navigation to maximize horizontal space for data tables."
+  },
+  "components": {
+    "buttons": "Primary buttons in Emerald Green. Secondary buttons use outline variant (border-border text-text_main).",
+    "inputs": "Shadcn standard but with 1px border. Focus state must have ring-2 ring-emerald-500/20 border-emerald-500.",
+    "modals": "Shadcn Dialog. Solid flat surfaces, backdrop blur on the overlay.",
+    "toast": "Sonner for toast notifications, bottom-right placement."
+  },
+  "motion": {
+    "transitions": "Hover states: transition-colors duration-200. Interactions: scale-95 on active.",
+    "animations": "Staggered fade-up for dashboard widgets and table rows."
+  },
+  "accessibility": {
+    "contrast": "Ensure white text on emerald buttons meets 4.5:1 (use darker emerald #059669 for light mode buttons if needed for contrast).",
+    "focus": "Visible focus rings on all interactive elements.",
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjB3YXJlaG91c2UlMjBsb2dpc3RpY3N8ZW58MHx8fHwxNzgxNzE5MjI3fDA&ixlib=rb-4.1.0&q=85",
+        "category": "auth_background",
+        "description": "Modern warehouse boxes, use as a subtle half-screen image for the login/register layout."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1771013211277-139159840242?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGVtZXJhbGQlMjBnZW9tZXRyaWMlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc4MTcxOTIyN3ww&ixlib=rb-4.1.0&q=85",
+        "category": "hero_accent",
+        "description": "Abstract emerald crystalline pattern. Use as a low-opacity texture overlay on the auth sidebar or header."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdCUyMGF2YXRhcnxlbnwwfHx8fDE3ODE1ODMxODl8MA&ixlib=rb-4.1.0&q=85",
+        "category": "user_avatar",
+        "description": "Professional portrait for the dashboard header profile dropdown."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Install required dependencies: yarn add @phosphor-icons/react recharts sonner",
+    "Setup routing for /login, /dashboard, /products, /categories, /suppliers, /transactions, /reports, /settings.",
+    "Apply Manrope for Headings and IBM Plex Sans for body in index.css.",
+    "Configure Tailwind with the provided Emerald/Slate color scale in tailwind.config.js.",
+    "Build the dashboard using a layout with a collapsible sidebar and sticky top header.",
+    "Implement Shadcn UI components for Tables, Dialogs, Select, Dropdown Menu, Forms, Tabs, and Skeletons for loading states.",
+    "For the Products CRUD, use a dense data table with search, filters, and pagination. Implement mock functionality for Excel/PDF export.",
+    "Use Recharts for the Stock Movement Trend, Category Distribution, Monthly Growth, and Supplier Contribution charts on the dashboard.",
+    "Ensure ALL interactive elements (buttons, links, inputs) and important text elements have a descriptive data-testid attribute in kebab-case.",
+    "Avoid overuse of heavy card shadows; stick to flat 1px border designs for widgets to match the Swiss & High-Contrast aesthetic.",
+    "Use the provided warehouse image for the right side of the split login screen."
+  ]
+}
