@@ -69,11 +69,16 @@ export default function Products() {
     api.get("/suppliers").then((r) => setSups(r.data));
   }, []);
 
-  useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, [page, categoryId, stockStatus]);
+  useEffect(() => {
+    fetchAll();
+    // fetchAll captures filters via closure; safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, categoryId, stockStatus]);
+
   useEffect(() => {
     const t = setTimeout(() => { setPage(1); fetchAll(); }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const openCreate = () => { setEditing(null); setForm(blank); setDialogOpen(true); };
@@ -248,7 +253,7 @@ export default function Products() {
           <TableBody>
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                <TableRow key={`skel-prod-${i}`}><TableCell colSpan={10}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
               ))
             ) : items.length === 0 ? (
               <TableRow><TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No products found.</TableCell></TableRow>

@@ -8,37 +8,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    let mounted = true;
     api
       .get("/auth/profile")
-      .then((r) => setUser(r.data))
-      .catch(() => localStorage.clear())
-      .finally(() => setLoading(false));
+      .then((r) => { if (mounted) setUser(r.data); })
+      .catch((err) => {
+        if (err?.response?.status && err.response.status !== 401) {
+          console.error("Profile fetch failed:", err);
+        }
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
     setUser(data.user);
     return data.user;
   };
 
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
     setUser(data.user);
     return data.user;
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch {}
-    localStorage.clear();
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Logout request failed:", err);
+    }
     setUser(null);
   };
 

@@ -111,7 +111,8 @@ function ParticleSystem({ events, positions }) {
 function AmbientParticles({ count = 24 }) {
   const ref = useRef();
   const data = useMemo(() => (
-    Array.from({ length: count }, () => ({
+    Array.from({ length: count }, (_, idx) => ({
+      key: `amb-${idx}`,
       x: (Math.random() - 0.5) * 14,
       z: (Math.random() - 0.5) * 14,
       baseY: 1 + Math.random() * 4,
@@ -132,8 +133,8 @@ function AmbientParticles({ count = 24 }) {
 
   return (
     <group ref={ref}>
-      {data.map((d, i) => (
-        <mesh key={i} position={[d.x, d.baseY, d.z]}>
+      {data.map((d) => (
+        <mesh key={d.key} position={[d.x, d.baseY, d.z]}>
           <sphereGeometry args={[0.05, 6, 6]} />
           <meshBasicMaterial color="#34D399" transparent opacity={0.25} />
         </mesh>
@@ -192,11 +193,15 @@ function Stage({ products, events, onHover }) {
 
 /* ---------- Empty state ---------- */
 function PlaceholderCubes() {
+  const cubes = [
+    { key: "a", pos: [-1.5, 0, 0] }, { key: "b", pos: [0, 0, 0] }, { key: "c", pos: [1.5, 0, 0] },
+    { key: "d", pos: [-0.75, 0, 1.4] }, { key: "e", pos: [0.75, 0, 1.4] }, { key: "f", pos: [0, 0, -1.4] },
+  ];
   return (
     <>
-      {[[-1.5, 0, 0], [0, 0, 0], [1.5, 0, 0], [-0.75, 0, 1.4], [0.75, 0, 1.4], [0, 0, -1.4]].map((p, i) => (
-        <Float key={i} speed={1 + i * 0.2} rotationIntensity={0.4} floatIntensity={1.2}>
-          <mesh position={p}>
+      {cubes.map((c, i) => (
+        <Float key={c.key} speed={1 + i * 0.2} rotationIntensity={0.4} floatIntensity={1.2}>
+          <mesh position={c.pos}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial
               color="#10B981" metalness={0.4} roughness={0.4}

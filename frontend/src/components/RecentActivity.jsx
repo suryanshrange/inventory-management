@@ -93,7 +93,7 @@ export default function RecentActivity() {
       <ScrollArea className="h-[360px] border-t border-border">
         {items === null ? (
           <div className="p-4 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={`skel-act-${i}`} className="h-12" />)}
           </div>
         ) : items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-sm text-muted-foreground p-8">

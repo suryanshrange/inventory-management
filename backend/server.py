@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File, Response, Request
 from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 
@@ -35,6 +35,7 @@ from auth import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, decode_token,
     get_current_user, require_roles,
+    set_auth_cookies, clear_auth_cookies,
 )
 from audit_helper import log_audit
 from email_service import send_email, low_stock_html
@@ -91,7 +92,7 @@ async def shutdown():
 # AUTH ROUTES
 # ============================================================
 @api.post("/auth/register", response_model=TokenResponse)
-async def register(payload: UserCreate):
+async def register(payload: UserCreate, response: Response):
     if await db.users.find_one({"email": payload.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     role = payload.role if payload.role in ("admin", "manager", "staff") else "staff"
@@ -100,44 +101,52 @@ async def register(payload: UserCreate):
     doc["password_hash"] = hash_password(payload.password)
     await db.users.insert_one(doc)
     await log_audit(user, "register", "user", user.id, f"New user: {user.email}")
-    return TokenResponse(
-        access_token=create_access_token(user.id, user.role),
-        refresh_token=create_refresh_token(user.id),
-        user=user,
-    )
+    access = create_access_token(user.id, user.role)
+    refresh = create_refresh_token(user.id)
+    set_auth_cookies(response, access, refresh)
+    return TokenResponse(access_token=access, refresh_token=refresh, user=user)
 
 
 @api.post("/auth/login", response_model=TokenResponse)
-async def login(payload: UserLogin):
+async def login(payload: UserLogin, response: Response):
     doc = await db.users.find_one({"email": payload.email}, {"_id": 0})
     if not doc or not verify_password(payload.password, doc.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     user = User(**{k: v for k, v in doc.items() if k != "password_hash"})
     await log_audit(user, "login", "user", user.id, "User logged in")
-    return TokenResponse(
-        access_token=create_access_token(user.id, user.role),
-        refresh_token=create_refresh_token(user.id),
-        user=user,
-    )
+    access = create_access_token(user.id, user.role)
+    refresh = create_refresh_token(user.id)
+    set_auth_cookies(response, access, refresh)
+    return TokenResponse(access_token=access, refresh_token=refresh, user=user)
 
 
 @api.post("/auth/refresh")
-async def refresh(payload: RefreshRequest):
-    data = decode_token(payload.refresh_token)
+async def refresh(request: Request, response: Response):
+    body_token = None
+    try:
+        body = await request.json()
+        body_token = body.get("refresh_token") if isinstance(body, dict) else None
+    except Exception:
+        body_token = None
+    token = body_token or request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token provided")
+    data = decode_token(token)
     if data.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     doc = await db.users.find_one({"id": data["sub"]}, {"_id": 0, "password_hash": 0})
     if not doc:
         raise HTTPException(status_code=401, detail="User not found")
-    return {
-        "access_token": create_access_token(doc["id"], doc["role"]),
-        "refresh_token": create_refresh_token(doc["id"]),
-    }
+    access = create_access_token(doc["id"], doc["role"])
+    refresh_token = create_refresh_token(doc["id"])
+    set_auth_cookies(response, access, refresh_token)
+    return {"access_token": access, "refresh_token": refresh_token}
 
 
 @api.post("/auth/logout")
-async def logout(user: User = Depends(get_current_user)):
+async def logout(response: Response, user: User = Depends(get_current_user)):
     await log_audit(user, "logout", "user", user.id, "User logged out")
+    clear_auth_cookies(response)
     return {"message": "Logged out"}
 
 
@@ -533,72 +542,78 @@ async def inventory_history(
 # ============================================================
 # REPORTS / DASHBOARD
 # ============================================================
-@api.get("/reports/dashboard")
-async def dashboard(user: User = Depends(get_current_user)):
-    products = await db.products.find({}, {"_id": 0}).to_list(10000)
-    total_products = len(products)
-    total_categories = await db.categories.count_documents({})
-    total_suppliers = await db.suppliers.count_documents({})
+def _compute_kpis(products: list, todays_tx: int, total_categories: int, total_suppliers: int) -> dict:
     low_stock = [p for p in products if 0 < p.get("quantity", 0) <= p.get("reorder_level", 0)]
     out_of_stock = [p for p in products if p.get("quantity", 0) == 0]
     inventory_value = sum(p.get("quantity", 0) * p.get("cost_price", 0) for p in products)
+    return {
+        "total_products": len(products),
+        "total_categories": total_categories,
+        "total_suppliers": total_suppliers,
+        "low_stock": len(low_stock),
+        "out_of_stock": len(out_of_stock),
+        "inventory_value": round(inventory_value, 2),
+        "todays_transactions": todays_tx,
+    }
 
-    today = datetime.now(timezone.utc).date().isoformat()
-    todays_tx = await db.inventory_logs.count_documents({"created_at": {"$regex": f"^{today}"}})
 
-    # Stock movement trend (last 14 days)
-    days = []
-    for i in range(13, -1, -1):
-        d = (datetime.now(timezone.utc) - timedelta(days=i)).date().isoformat()
+async def _stock_trend(days: int = 14) -> list:
+    out = []
+    today_utc = datetime.now(timezone.utc)
+    for i in range(days - 1, -1, -1):
+        d = (today_utc - timedelta(days=i)).date().isoformat()
         ins = await db.inventory_logs.count_documents({"action": "stock_in", "created_at": {"$regex": f"^{d}"}})
         outs = await db.inventory_logs.count_documents({"action": "stock_out", "created_at": {"$regex": f"^{d}"}})
-        days.append({"date": d[5:], "stock_in": ins, "stock_out": outs})
+        out.append({"date": d[5:], "stock_in": ins, "stock_out": outs})
+    return out
 
-    # Category distribution
-    cats = await db.categories.find({}, {"_id": 0}).to_list(1000)
-    cat_map = {c["id"]: c["name"] for c in cats}
-    cat_dist: dict = {}
+
+def _category_distribution(products: list, cat_map: dict) -> list:
+    dist: dict = {}
     for p in products:
         cid = p.get("category_id") or "uncategorized"
-        cname = cat_map.get(cid, "Uncategorized")
-        cat_dist[cname] = cat_dist.get(cname, 0) + 1
-    category_distribution = [{"name": k, "value": v} for k, v in cat_dist.items()]
+        name = cat_map.get(cid, "Uncategorized")
+        dist[name] = dist.get(name, 0) + 1
+    return [{"name": k, "value": v} for k, v in dist.items()]
 
-    # Monthly growth (last 6 months) - count of products created per month
-    months: list = []
+
+def _monthly_growth(products: list, months: int = 6) -> list:
+    out = []
     now = datetime.now(timezone.utc)
-    for i in range(5, -1, -1):
+    for i in range(months - 1, -1, -1):
         m_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
-        m_label = m_start.strftime("%b %Y")
-        m_prefix = m_start.strftime("%Y-%m")
-        count = sum(1 for p in products if (p.get("created_at") or "").startswith(m_prefix))
-        months.append({"month": m_label, "products": count})
+        prefix = m_start.strftime("%Y-%m")
+        count = sum(1 for p in products if (p.get("created_at") or "").startswith(prefix))
+        out.append({"month": m_start.strftime("%b %Y"), "products": count})
+    return out
 
-    # Supplier contribution (by product count)
-    sups = await db.suppliers.find({}, {"_id": 0}).to_list(1000)
-    sup_map = {s["id"]: s["name"] for s in sups}
-    sup_dist: dict = {}
+
+def _supplier_contribution(products: list, sup_map: dict) -> list:
+    dist: dict = {}
     for p in products:
         sid = p.get("supplier_id")
-        if sid:
-            sname = sup_map.get(sid, "Unknown")
-            sup_dist[sname] = sup_dist.get(sname, 0) + 1
-    supplier_contribution = [{"name": k, "value": v} for k, v in sup_dist.items()]
+        if not sid:
+            continue
+        name = sup_map.get(sid, "Unknown")
+        dist[name] = dist.get(name, 0) + 1
+    return [{"name": k, "value": v} for k, v in dist.items()]
 
+
+@api.get("/reports/dashboard")
+async def dashboard(user: User = Depends(get_current_user)):
+    products = await db.products.find({}, {"_id": 0}).to_list(10000)
+    cats = await db.categories.find({}, {"_id": 0}).to_list(1000)
+    sups = await db.suppliers.find({}, {"_id": 0}).to_list(1000)
+    today = datetime.now(timezone.utc).date().isoformat()
+    todays_tx = await db.inventory_logs.count_documents({"created_at": {"$regex": f"^{today}"}})
+    cat_map = {c["id"]: c["name"] for c in cats}
+    sup_map = {s["id"]: s["name"] for s in sups}
     return {
-        "kpi": {
-            "total_products": total_products,
-            "total_categories": total_categories,
-            "total_suppliers": total_suppliers,
-            "low_stock": len(low_stock),
-            "out_of_stock": len(out_of_stock),
-            "inventory_value": round(inventory_value, 2),
-            "todays_transactions": todays_tx,
-        },
-        "stock_trend": days,
-        "category_distribution": category_distribution,
-        "monthly_growth": months,
-        "supplier_contribution": supplier_contribution,
+        "kpi": _compute_kpis(products, todays_tx, len(cats), len(sups)),
+        "stock_trend": await _stock_trend(),
+        "category_distribution": _category_distribution(products, cat_map),
+        "monthly_growth": _monthly_growth(products),
+        "supplier_contribution": _supplier_contribution(products, sup_map),
     }
 
 
@@ -743,7 +758,7 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX", ".*"),
     allow_methods=["*"],
     allow_headers=["*"],
 )

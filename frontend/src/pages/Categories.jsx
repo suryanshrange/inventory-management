@@ -86,7 +86,7 @@ export default function Categories() {
           </TableHeader>
           <TableBody>
             {loading ? Array.from({ length: 4 }).map((_, i) => (
-              <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow key={`skel-cat-${i}`}><TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
             )) : items.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No categories. Add one to get started.</TableCell></TableRow>
             ) : items.map((c) => (

@@ -1,13 +1,17 @@
-"""Authentication helpers: bcrypt + JWT (Bearer header)."""
+"""Authentication helpers: bcrypt + JWT (httpOnly cookies, with Bearer fallback)."""
 import os
 import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models import User
 
 JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_HOURS = 8
+REFRESH_TOKEN_DAYS = 7
+ACCESS_COOKIE = "access_token"
+REFRESH_COOKIE = "refresh_token"
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -31,7 +35,7 @@ def create_access_token(user_id: str, role: str) -> str:
         "sub": user_id,
         "role": role,
         "type": "access",
-        "exp": datetime.now(timezone.utc) + timedelta(hours=8),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_HOURS),
     }
     return jwt.encode(payload, _secret(), algorithm=JWT_ALGORITHM)
 
@@ -40,7 +44,7 @@ def create_refresh_token(user_id: str) -> str:
     payload = {
         "sub": user_id,
         "type": "refresh",
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_DAYS),
     }
     return jwt.encode(payload, _secret(), algorithm=JWT_ALGORITHM)
 
@@ -54,13 +58,38 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+def set_auth_cookies(response: Response, access: str, refresh: str) -> None:
+    """Set httpOnly cookies for access + refresh tokens."""
+    secure_cookie = os.environ.get("COOKIE_SECURE", "true").lower() == "true"
+    response.set_cookie(
+        key=ACCESS_COOKIE, value=access,
+        httponly=True, secure=secure_cookie, samesite="none",
+        max_age=ACCESS_TOKEN_HOURS * 3600, path="/",
+    )
+    response.set_cookie(
+        key=REFRESH_COOKIE, value=refresh,
+        httponly=True, secure=secure_cookie, samesite="none",
+        max_age=REFRESH_TOKEN_DAYS * 86400, path="/",
+    )
+
+
+def clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie(key=ACCESS_COOKIE, path="/", samesite="none", secure=True)
+    response.delete_cookie(key=REFRESH_COOKIE, path="/", samesite="none", secure=True)
+
+
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> User:
     from database import db
-    if credentials is None:
+    # Prefer httpOnly cookie; fall back to Authorization header
+    token = request.cookies.get(ACCESS_COOKIE)
+    if not token and credentials is not None:
+        token = credentials.credentials
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = decode_token(credentials.credentials)
+    payload = decode_token(token)
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Invalid token type")
     doc = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})

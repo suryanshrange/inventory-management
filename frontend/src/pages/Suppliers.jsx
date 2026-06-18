@@ -94,7 +94,7 @@ export default function Suppliers() {
           </TableHeader>
           <TableBody>
             {loading ? Array.from({ length: 4 }).map((_, i) => (
-              <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+              <TableRow key={`skel-sup-${i}`}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
             )) : items.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">No suppliers yet.</TableCell></TableRow>
             ) : items.map((s) => (

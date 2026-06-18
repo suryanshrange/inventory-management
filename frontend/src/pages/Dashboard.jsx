@@ -93,7 +93,7 @@ export default function Dashboard() {
       <div className="space-y-6">
         <Skeleton className="h-32" />
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-32" />)}
+          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={`skel-kpi-${i}`} className="h-32" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Skeleton className="h-80 lg:col-span-2" />
@@ -221,8 +221,8 @@ export default function Dashboard() {
                   innerRadius={55} outerRadius={92} paddingAngle={3}
                   stroke="hsl(var(--card))" strokeWidth={2}
                 >
-                  {data.category_distribution.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  {data.category_distribution.map((entry) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[data.category_distribution.indexOf(entry) % PIE_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }} />

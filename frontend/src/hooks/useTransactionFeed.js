@@ -25,8 +25,8 @@ export function useTransactionFeed(intervalMs = 4000) {
         // chronological: oldest fresh first
         const sorted = [...fresh].reverse();
         setEvents((prev) => [...prev, ...sorted].slice(-40));
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.error("Transaction feed fetch failed:", err);
       }
     };
 

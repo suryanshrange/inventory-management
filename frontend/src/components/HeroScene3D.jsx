@@ -27,18 +27,18 @@ export default function HeroScene3D() {
       <div className="absolute top-1/2 left-1/2" style={{ transform: "translate(-50%, -50%)" }}>
         <div className="cube-3d relative" style={{ width: 160, height: 160 }}>
           {[
-            { transform: "rotateY(0deg) translateZ(80px)" },
-            { transform: "rotateY(90deg) translateZ(80px)" },
-            { transform: "rotateY(180deg) translateZ(80px)" },
-            { transform: "rotateY(-90deg) translateZ(80px)" },
-            { transform: "rotateX(90deg) translateZ(80px)" },
-            { transform: "rotateX(-90deg) translateZ(80px)" },
+            { face: "front", transform: "rotateY(0deg) translateZ(80px)" },
+            { face: "right", transform: "rotateY(90deg) translateZ(80px)" },
+            { face: "back", transform: "rotateY(180deg) translateZ(80px)" },
+            { face: "left", transform: "rotateY(-90deg) translateZ(80px)" },
+            { face: "top", transform: "rotateX(90deg) translateZ(80px)" },
+            { face: "bottom", transform: "rotateX(-90deg) translateZ(80px)" },
           ].map((s, i) => (
             <div
-              key={i}
+              key={s.face}
               className="absolute inset-0 rounded-xl border border-emerald-400/30"
               style={{
-                ...s,
+                transform: s.transform,
                 background:
                   "linear-gradient(135deg, rgba(16,185,129,0.20), rgba(6,182,212,0.10))",
                 boxShadow:
@@ -47,7 +47,7 @@ export default function HeroScene3D() {
               }}
             >
               <div className="absolute inset-2 rounded-md border border-white/10 flex items-center justify-center text-white/40 font-mono text-[10px]">
-                SKU-{(i + 1).toString().padStart(3, "0")}
+                SKU-{s.face.toUpperCase().slice(0, 3)}
               </div>
             </div>
           ))}

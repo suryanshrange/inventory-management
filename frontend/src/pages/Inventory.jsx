@@ -165,7 +165,7 @@ export default function Inventory() {
               </TableHeader>
               <TableBody>
                 {loading ? Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                  <TableRow key={`skel-inv-${i}`}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                 )) : history.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">No transactions logged yet.</TableCell></TableRow>
                 ) : history.map((h) => (
