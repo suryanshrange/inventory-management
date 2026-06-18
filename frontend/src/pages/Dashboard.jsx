@@ -12,6 +12,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend, AreaChart, Area,
 } from "recharts";
 import Tilt3D from "@/components/Tilt3D";
+import WarehouseMap3D from "@/components/WarehouseMap3D";
 import { useCountUp } from "@/hooks/useCountUp";
 
 const KPI = [
@@ -67,12 +68,14 @@ function KpiCard({ item, value, index }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/reports/dashboard")
-      .then((r) => setData(r.data))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get("/reports/dashboard").then((r) => setData(r.data)),
+      api.get("/products", { params: { limit: 64 } }).then((r) => setProducts(r.data.items || [])),
+    ]).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -141,6 +144,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         {KPI.map((item, i) => <KpiCard key={item.key} item={item} value={k[item.key] || 0} index={i} />)}
       </div>
+
+      {/* 3D WAREHOUSE MAP — Digital Twin */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
+      >
+        <WarehouseMap3D products={products} />
+      </motion.div>
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
