@@ -14,6 +14,7 @@ import {
 import Tilt3D from "@/components/Tilt3D";
 import WarehouseMap3D from "@/components/WarehouseMap3D";
 import { useCountUp } from "@/hooks/useCountUp";
+import { useTransactionFeed } from "@/hooks/useTransactionFeed";
 
 const KPI = [
   { key: "total_products", label: "Total Products", icon: Package, color: "emerald", gradient: "from-emerald-500/20 to-emerald-500/0" },
@@ -70,6 +71,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const txEvents = useTransactionFeed(4000);
 
   useEffect(() => {
     Promise.all([
@@ -77,6 +79,13 @@ export default function Dashboard() {
       api.get("/products", { params: { limit: 64 } }).then((r) => setProducts(r.data.items || [])),
     ]).finally(() => setLoading(false));
   }, []);
+
+  // Re-fetch products when new transactions arrive so quantities & colors update
+  useEffect(() => {
+    if (txEvents.length === 0) return;
+    api.get("/products", { params: { limit: 64 } }).then((r) => setProducts(r.data.items || []));
+    api.get("/reports/dashboard").then((r) => setData(r.data));
+  }, [txEvents.length]);
 
   if (loading) {
     return (
@@ -149,7 +158,7 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
       >
-        <WarehouseMap3D products={products} />
+        <WarehouseMap3D products={products} events={txEvents} />
       </motion.div>
 
       {/* Charts row 1 */}
