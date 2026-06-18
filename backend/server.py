@@ -38,6 +38,7 @@ from auth import (
 )
 from audit_helper import log_audit
 from email_service import send_email, low_stock_html
+from seed_data import seed_demo_data
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -72,6 +73,13 @@ async def startup():
             d = u.model_dump()
             d["password_hash"] = hash_password(pwd)
             await db.users.insert_one(d)
+    # Seed demo inventory (runs once if products is empty)
+    try:
+        seeded = await seed_demo_data()
+        if seeded:
+            logger.info("Demo inventory seeded successfully")
+    except Exception as e:
+        logger.error(f"Seed failed: {e}")
 
 
 @app.on_event("shutdown")

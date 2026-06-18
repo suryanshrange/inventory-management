@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import Tilt3D from "@/components/Tilt3D";
 import WarehouseMap3D from "@/components/WarehouseMap3D";
+import RecentActivity from "@/components/RecentActivity";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useTransactionFeed } from "@/hooks/useTransactionFeed";
 
@@ -154,12 +155,15 @@ export default function Dashboard() {
         {KPI.map((item, i) => <KpiCard key={item.key} item={item} value={k[item.key] || 0} index={i} />)}
       </div>
 
-      {/* 3D WAREHOUSE MAP — Digital Twin */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
-      >
-        <WarehouseMap3D products={products} events={txEvents} />
-      </motion.div>
+      {/* 3D WAREHOUSE MAP + RECENT ACTIVITY */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }}
+        >
+          <WarehouseMap3D products={products} events={txEvents} />
+        </motion.div>
+        <RecentActivity />
+      </div>
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
