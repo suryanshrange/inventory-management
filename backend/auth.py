@@ -74,8 +74,9 @@ def set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 
 
 def clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(key=ACCESS_COOKIE, path="/", samesite="none", secure=True)
-    response.delete_cookie(key=REFRESH_COOKIE, path="/", samesite="none", secure=True)
+    secure_cookie = os.environ.get("COOKIE_SECURE", "true").lower() == "true"
+    response.delete_cookie(key=ACCESS_COOKIE, path="/", samesite="none", secure=secure_cookie)
+    response.delete_cookie(key=REFRESH_COOKIE, path="/", samesite="none", secure=secure_cookie)
 
 
 async def get_current_user(

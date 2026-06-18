@@ -700,15 +700,15 @@ async def reports_export_excel(
         ws.title = "Transactions"
         ws.append(["Date", "Action", "Product", "Qty Change", "Previous", "New", "User", "Notes"])
         logs = await db.inventory_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
-        for l in logs:
-            ws.append([l["created_at"], l["action"], l["product_name"], l["quantity_change"],
-                       l["previous_quantity"], l["new_quantity"], l["user_name"], l.get("notes", "")])
+        for row in logs:
+            ws.append([row["created_at"], row["action"], row["product_name"], row["quantity_change"],
+                       row["previous_quantity"], row["new_quantity"], row["user_name"], row.get("notes", "")])
     elif report == "audit":
         ws.title = "Audit"
         ws.append(["Date", "User", "Action", "Entity", "Details"])
         logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(5000)
-        for l in logs:
-            ws.append([l["created_at"], l["user_name"], l["action"], l["entity"], l.get("details", "")])
+        for row in logs:
+            ws.append([row["created_at"], row["user_name"], row["action"], row["entity"], row.get("details", "")])
     else:
         ws.title = "Products"
         ws.append(["SKU", "Name", "Quantity", "Cost", "Price", "Reorder"])

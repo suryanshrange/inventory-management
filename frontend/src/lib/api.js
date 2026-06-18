@@ -24,8 +24,13 @@ api.interceptors.response.use(
         await axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
         return api(orig);
       } catch (refreshErr) {
-        console.error("Token refresh failed:", refreshErr);
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        // 401 on refresh = no valid session. Only navigate from non-auth pages.
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.startsWith("/login") &&
+          !window.location.pathname.startsWith("/register")
+        ) {
+          console.error("Token refresh failed:", refreshErr);
           window.location.href = "/login";
         }
       }

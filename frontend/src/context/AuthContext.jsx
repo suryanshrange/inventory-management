@@ -8,6 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Skip profile bootstrap on auth pages — avoids expected-401 console noise
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    if (path === "/login" || path === "/register") {
+      setLoading(false);
+      return;
+    }
     let mounted = true;
     api
       .get("/auth/profile")
