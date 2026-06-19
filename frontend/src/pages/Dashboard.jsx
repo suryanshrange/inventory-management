@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Package, Tag, Truck, AlertTriangle, XCircle, DollarSign, Activity,
-  TrendingUp, ArrowUpRight, Boxes, Sparkles,
+  TrendingUp, ArrowUpRight, Boxes, Sparkles, Users, ShoppingCart,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -19,8 +19,8 @@ import { useTransactionFeed } from "@/hooks/useTransactionFeed";
 
 const KPI = [
   { key: "total_products", label: "Total Products", icon: Package, color: "emerald", gradient: "from-emerald-500/20 to-emerald-500/0" },
-  { key: "total_categories", label: "Categories", icon: Tag, color: "blue", gradient: "from-blue-500/20 to-blue-500/0" },
-  { key: "total_suppliers", label: "Suppliers", icon: Truck, color: "violet", gradient: "from-violet-500/20 to-violet-500/0" },
+  { key: "total_customers", label: "Customers", icon: Users, color: "blue", gradient: "from-blue-500/20 to-blue-500/0" },
+  { key: "total_orders", label: "Orders", icon: ShoppingCart, color: "violet", gradient: "from-violet-500/20 to-violet-500/0" },
   { key: "low_stock", label: "Low Stock", icon: AlertTriangle, color: "amber", gradient: "from-amber-500/20 to-amber-500/0" },
   { key: "out_of_stock", label: "Out of Stock", icon: XCircle, color: "red", gradient: "from-red-500/20 to-red-500/0" },
   { key: "inventory_value", label: "Inventory Value", icon: DollarSign, color: "emerald", gradient: "from-emerald-500/20 to-emerald-500/0", isCurrency: true },

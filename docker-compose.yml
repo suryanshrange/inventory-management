@@ -1,0 +1,60 @@
+name: inventory-ops
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inventory_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inventory_db}
+      POSTGRES_USER: ${POSTGRES_USER:-invuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invpass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-invuser} -d ${POSTGRES_DB:-inventory_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inventory_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-invuser}:${POSTGRES_PASSWORD:-invpass}@postgres:5432/${POSTGRES_DB:-inventory_db}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@inventory.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SENDER_EMAIL: ${SENDER_EMAIL:-onboarding@resend.dev}
+      ALERT_RECIPIENT: ${ALERT_RECIPIENT:-}
+      CORS_ORIGIN_REGEX: ${CORS_ORIGIN_REGEX:-.*}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      PORT: 8001
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8001}
+    container_name: inventory_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  postgres_data:
+    name: inventory_postgres_data

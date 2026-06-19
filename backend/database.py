@@ -1,22 +1,38 @@
-"""Mongo connection."""
+"""SQLAlchemy async engine + session helpers."""
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
+from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from dotenv import load_dotenv
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+engine = create_async_engine(DATABASE_URL, echo=False, pool_size=10, max_overflow=20)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
-async def init_indexes():
-    await db.users.create_index("email", unique=True)
-    await db.users.create_index("id", unique=True)
-    await db.products.create_index("sku", unique=True)
-    await db.products.create_index("id", unique=True)
-    await db.categories.create_index("id", unique=True)
-    await db.suppliers.create_index("id", unique=True)
-    await db.inventory_logs.create_index([("product_id", 1), ("created_at", -1)])
-    await db.audit_logs.create_index([("created_at", -1)])
+async def get_session() -> AsyncSession:
+    async with SessionLocal() as session:
+        yield session
+
+
+@asynccontextmanager
+async def session_scope():
+    """Manual context manager for places that aren't FastAPI dependencies."""
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def init_db():
+    """Create all tables."""
+    from models_sql import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

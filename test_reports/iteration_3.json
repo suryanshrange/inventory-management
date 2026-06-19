@@ -1,0 +1,48 @@
+{
+  "summary": "PostgreSQL backend migration + new Customers & Orders entities verified end-to-end. Backend: 87/87 pytest tests pass (44 legacy regression + 11 cookie-auth + 32 new customers/orders). All PDF spec endpoints work: products CRUD, customers CRUD (POST returns 201), orders POST with auto ORD-##### + total calc + stock decrement + inventory_log writes, order cancel restocks + writes stock_in log, double-cancel 400, insufficient-stock 400 with no qty change, empty items 422, invalid customer/product 404, invalid email 422, duplicate email 400, RBAC enforced (staff 403 on cats/suppliers/delete-product/delete-customer/audit-logs, allowed on stock-in/out + create-order), negative quantity 422, dashboard kpi exposes total_customers + total_orders. Seed verified live: 32 products, 6 customers, 5 orders incl. ORD-01005. Frontend: /customers lists 6 seeded customers with search filter, create-customer dialog works (created ui_test_*@example.com, appeared in list); /orders shows 5 seeded rows with order numbers, customer names, totals ($258.00 etc), pending/fulfilled/cancelled badges, eye button opens detail sheet; full create-order flow works (customer select, product select, qty, submit, toast 'Order ORD-01012 created · $10.00', new row appears); Dashboard KPI cards show total_customers & total_orders; sidebar has both Customers and Orders nav items.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/customers, POST /api/products, POST /api/orders", "issue": "Return 201 (proper REST). Existing tests had asserted 200; tests updated to accept (200,201). Not a bug — flagging because legacy clients comparing == 200 may break."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customers_orders.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_cookie_auth.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/customers_orders_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Standardise success status — consider consistently using 201 for all POST-create endpoints, then update API docs/Swagger examples to reflect that.",
+    "(Carry-over from iter_2) AuthContext.jsx still bootstraps /auth/profile unconditionally; first /login visit produces 4x 401 + 'Token refresh failed' console errors. Harmless but noisy.",
+    "(Carry-over) clear_auth_cookies in auth.py hardcodes secure=True while set_auth_cookies reads COOKIE_SECURE env — make both env-driven.",
+    "(Carry-over) CORS allow_origin_regex='.*' with allow_credentials=True is permissive — pin explicit origins for prod.",
+    "(Carry-over) /auth/login still lacks brute-force lockout per auth playbook."
+  ],
+  "critical_code_review_comments": [
+    "Order/Customer routes correctly use SQLAlchemy 2 async + asyncpg with proper transaction boundaries for create_order (stock decrement + inventory_log + order create in one tx). Cancellation flow correctly restocks and writes stock_in log atomically.",
+    "_generate_order_number produces zero-padded ORD-##### (verified ORD-01005 through ORD-01012 contiguous).",
+    "OrderItem has product_id RESTRICT — safe against orphaning items when product is deleted; cascade on Order means items deleted with parent.",
+    "Pydantic Customer schema enforces EmailStr (returns 422 on invalid). DB unique constraint surfaces as 400 on duplicate via integrity error handling — clean separation.",
+    "Frontend Orders.jsx detail sheet fetches /orders/{id} on view — correctly hydrates nested items+customer rather than relying on list payload.",
+    "Frontend uses REACT_APP_BACKEND_URL via api wrapper with withCredentials — no hardcoded URLs found.",
+    "All interactive elements on new pages have data-testid (customer-row-*, order-row-*, line-product-*, line-qty-*, cust-form-*, order-submit, etc.) — excellent test affordance."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_customers_orders.py (NEW - 32 tests for customers + orders + dashboard new fields + RBAC + product constraints)",
+    "/app/backend/tests/backend_test.py (assertion: POST /products now accepts 200|201)"
+  ],
+  "success_rate": {"backend": "100% (87/87 pytest)", "frontend": "100% on tested flows (login, dashboard kpis, sidebar nav, customers list/search/create, orders list/detail-sheet/create flow with toast)"},
+  "test_credentials": "admin@inventory.com/Admin@123, manager@inventory.com/Manager@123, staff@inventory.com/Staff@123 — all verified",
+  "seed_data_creation": "Live seed verified: 32 products, 6 customers, 5 orders (ORD-01000..ORD-01005 minus one cancelled). Tests created TEST_-prefixed customers/products (cleaned up by TestCleanup) and a UI test customer 'ui_test_<ts>@example.com' that was left in DB as artefact.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Postgres migration is solid. All 32 new customer+order tests in /app/backend/tests/test_customers_orders.py plus 55 prior regression tests = 87 passing. POST endpoints return 201 (REST proper) — assert 200|201. Order numbers are ORD-##### contiguous. Inventory logs are written for both order-create (stock_out, negative quantity_change) and order-cancel (stock_in, positive). Order DELETE is soft (sets status=cancelled), not hard delete. Run: pytest /app/backend/tests/ -v",
+  "rca of the issue": "No bugs found in Postgres migration or new orders/customers features. Only minor: POST endpoints now return 201 instead of 200 (correct per REST). Pre-existing legacy tests asserting == 200 were updated to accept either."
+}

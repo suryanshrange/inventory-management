@@ -187,7 +187,7 @@ class TestProducts:
             "supplier_id": TestSuppliers.sup_id, "barcode": "B1",
         }
         r = requests.post(f"{API}/products", json=payload, headers=H(admin_token), timeout=30)
-        assert r.status_code == 200, r.text
+        assert r.status_code in (200, 201), r.text
         TestProducts.prod_id = r.json()["id"]
         assert r.json()["sku"] == TestProducts.sku
 

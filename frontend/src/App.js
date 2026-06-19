@@ -7,6 +7,8 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import Products from "@/pages/Products";
+import Customers from "@/pages/Customers";
+import Orders from "@/pages/Orders";
 import Categories from "@/pages/Categories";
 import Suppliers from "@/pages/Suppliers";
 import Inventory from "@/pages/Inventory";
@@ -25,6 +27,8 @@ function App() {
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/suppliers" element={<Suppliers />} />
             <Route path="/inventory" element={<Inventory />} />

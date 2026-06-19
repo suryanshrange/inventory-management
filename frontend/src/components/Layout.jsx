@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, Tag, Truck, ArrowDownUp, FileBarChart2,
   ShieldCheck, LogOut, ChevronLeft, Search, Bell, User as UserIcon, Moon, Sun, Sparkles,
+  Users, ShoppingCart,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import { useAuth } from "@/context/AuthContext";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
   { to: "/products", label: "Products", icon: Package, key: "products" },
+  { to: "/customers", label: "Customers", icon: Users, key: "customers" },
+  { to: "/orders", label: "Orders", icon: ShoppingCart, key: "orders" },
   { to: "/categories", label: "Categories", icon: Tag, key: "categories" },
   { to: "/suppliers", label: "Suppliers", icon: Truck, key: "suppliers" },
   { to: "/inventory", label: "Inventory", icon: ArrowDownUp, key: "inventory" },
